@@ -1,45 +1,72 @@
 class Path {
   private Tile[] tiles;
   private int pointer;
-  private Position startDir, endDir;
   private Position startPos, endPos;
   private Path nextPath;
 
+  //this is used as reference to get the color value from each letter in the middle part of the string
   private HashMap<String, Integer> tileColors = new HashMap<String, Integer>(6);
 
- //35x35
+ /**
+ * A path consists of an array of tiles, a starting position and direction, and an end position and direction.
+ * All but the positions are taken from the given string.
+ *
+ */
   public Path(String path, Position start, Position end) {
     pointer = 0;
-    tileColors.put("W",WHITE);
-    tileColors.put("O",ORANGE);
-    tileColors.put("R",RED);
-    tileColors.put("B",BLUE);
-    tileColors.put("G",GREEN);
-    tileColors.put("P",PINK);
+    tileColors.put("w",WHITE);
+    tileColors.put("o",ORANGE);
+    tileColors.put("r",RED);
+    tileColors.put("b",BLUE);
+    tileColors.put("g",GREEN);
+    tileColors.put("p",PINK);
 
-    this.tiles = parseString(path);
     startPos=start;
     endPos=end;
+    this.tiles = parseString(path);
+
+  }
+
+  public Path(String path, Position start, Position end, Path nextPath) {
+    pointer = 0;
+    tileColors.put("w",WHITE);
+    tileColors.put("o",ORANGE);
+    tileColors.put("r",RED);
+    tileColors.put("b",BLUE);
+    tileColors.put("g",GREEN);
+    tileColors.put("p",PINK);
+
+    startPos=start;
+    endPos=end;
+    this.tiles = parseString(path);
+
+    this.nextPath = nextPath;
   }
 
  //String format: "x,y a b c d e f g x,y" where "a b c d e f g" is substituted with tile letters(e.g., o,w,r,g,b,p)
- //given a String, parses it and returns an array of appropriately instantiated Tiles
+ //given a String, parses it and returns an array of appropriately initialized Tiles
   private Tile[] parseString(String toParse)
   {
-    String[] parseable = toParse.toLowerCase().split("%s");
+    //splits the string toParse into an array based on whitespace
+    String[] parseable = toParse.toLowerCase().split(" ");
+
+    //further splits the parseable array for the purpose of getting the start and end positions
     String[] tempS = parseable[0].split(",");
     String[] tempE = parseable[parseable.length-1].split(",");
+
+    //parses the start and end strings as "x,y"
     Position start = new Position(Integer.parseInt(tempS[0]),Integer.parseInt(tempS[1]));
     Position end = new Position(Integer.parseInt(tempE[0]),Integer.parseInt(tempE[1]));
 
-    //removes the first and last element in the array parseable
+    //removes the first and last element in the parseable array, as they are no longer needed
     String[] temp = new String[parseable.length-2];
     for(int a=0;a<temp.length;a++) {
       temp[a] = parseable[a+1];
     }
     parseable=temp;
 
-    Tile[] parsed = new Tile[parseable.length-2];
+    //instantiates the Tile array to be returned by this method
+    Tile[] parsed = new Tile[parseable.length];
 
     for(int i=0;i<parsed.length;i++) {
       if(i==parsed.length-1) {
@@ -47,7 +74,7 @@ class Path {
       } else if(i==0) {
         parsed[i] = new Tile(tileColors.get(parseable[i]), startPos, start);
       } else {
-        //offset each Tile's position based on the starting direction and index
+        //offset each Tile's position based on the starting direction, position and the current index
         parsed[i] = new Tile(tileColors.get(parseable[i]), new Position(startPos.getX()+i*35*start.getX(), startPos.getY()+i*35*start.getY()), start);
       }
 
@@ -58,6 +85,32 @@ class Path {
 
   public Tile getCurrentTile() {
     return tiles[pointer];
+  }
+
+  /**
+  * Returns the next Path if it's set, otherwise it returns null.
+  */
+  public Path getNextPath() {
+      return nextPath;
+  }
+
+  /**
+  * Sets the next path after this one.
+  * Use when the player decides which path to take before moving them.
+  */
+  public void setNextPath(Path nextPath) {
+    this.nextPath=nextPath;
+  }
+
+  /**
+  * Tracks where the player is
+  *
+  */
+  public void traversePath(int toTravel) {
+    pointer+=toTravel;
+    if(pointer>=tiles.length-1) {
+      currentPath = nextPath;
+    }
   }
 
 

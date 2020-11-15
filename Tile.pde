@@ -5,9 +5,10 @@ class Tile {
   private Position direction;
 
   /**
-  * Constructs the Tile object with a color, direction, and position
+  * Constructs the Tile object with a color, direction, and position.
+  * Each tile is 35x35 pixels
   */
-  public Tile(color mColor, Position dir, Position pos) {
+  public Tile(color mColor, Position pos, Position dir) {
     tileColor = mColor;
     direction=dir;
     tilePos = pos;

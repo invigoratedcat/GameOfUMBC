@@ -1,6 +1,5 @@
 final float MAX_GRADE = 100; // max grade a player can get
 final int MAX_TILES = 105; //the total tiles in the path the player can take.
-int currentTile=0;//tracks how far along the player is
 
 float playerGrade = 0; // the player doesn’t have a grade at the start
 int playerHappiness=100; //assume the player is happy at the start
@@ -11,7 +10,6 @@ boolean inputEvent=false;//used for when the player needs to give input
 boolean examEvent=false;//used for when the player needs to take an exam
 int changePath=0;//used for when the player needs to go left or right; 0 means they just go straight
 PImage boardImage; //the image of the board
-Tile[] gameTiles;//different tiles that are on the board
 PImage[] dieFaces; //array that holds the six possible faces for a die to have
 
 final int ORANGE=#ff5722;
@@ -38,6 +36,9 @@ Path[] path42;
 Path[] path5;
 Path[] path61;
 Path[] path62;
+Path[] path7;
+//to be set to path1 once the game starts; it is used to track which path the player is currently on.
+Path currentPath;
 
 //each type of stat that can be affected by an event, hence EventType
 public enum EventType {
@@ -56,79 +57,86 @@ String currentEvent="";//the current event that’s been registered by the game
 
 void setup() {
   size(1536,900);
-  //gameTiles = new Tile[] {new Tile(color(255, 165, 0),19), new Tile(color(255,0,0),2),
-  //                new Tile(color(0,0,255),2), new Tile(color(0,255,0),1)};
+
   boardImage = loadImage("./Board.png");
   createPaths();
 }
 
 /*
-* initializes each path the player can take; each path is in sequential order
-* and then divided into two "sub paths" as denoted by the 1 in "path21" and 2 in "path22"
+* Initializes each path the player can take in sequential order
+* and then divided into two "sub paths" as denoted by the 1 in "path21" and 2 in "path22."
+* Because each path connects to the next one, they are initialized in reverse order.
 */
 private void createPaths()
 {
-  //Path 1
-  path1 = new Path[1];
-  path1[0] = new Path("-1,0 w o p o w o g p o w o p 0,-1", new Position(1393, 841), new Position(935, 826));
+  //Path 7 - has the last stop sign
+  path7 = new Path[2];
+  path7[1] = new Path("0,-1 o w o p o 0,0", new Position(51, 263), new Position(51, 103));
+  path7[0] = new Path("-1,0 p o w o p g o p r w o p g o 0,-1", new Position(573, 263), new Position(51, 263), path7[1]);
 
-  //Path 2 - path21 is the longer one with many turns, path22 is the short one
-  path21 = new Path[7];
-  path21[0] = new Path("0,-1 b g o w o p o w g o -1,0", new Position(936, 786), new Position(936,424));
-  path21[1] = new Path("-1,0 o p o w o 0,1", new Position(936,424), new Position(774, 424));
-  path21[2] = new Path("0,1 o p g -1,0", new Position(774, 424), new Position(774, 504));
-  path21[3] = new Path("-1,0 g w o p 0,1", new Position(774, 504), new Position(653, 503));
-  path21[4] = new Path("0,1 p o w o g -1,0", new Position(653,503), new Position(655,664));
-  path21[5] = new Path("-1,0 g p o w o 0,1", new Position(655,664), new Position(494,664));
-  path21[6] = new Path("0,1 o p o g w -1,0", new Position(494,664), new Position(493,785));
+  //Path 6 - path61 is the shorter one; path62 is the one to the right/above of path61
+  path61 = new Path[2];
+  path61[1] = new Path("-1,0 w o p g o w o p o w g o p o w o w g p -1,0", new Position(1302, 263), new Position(573, 263),path7[0]);
+  path61[0] = new Path("0,-1 b o g o p o w -1,0", new Position(1302, 505), new Position(1302, 263),path61[1]);
 
-  path22 = new Path[1];
-  path22[0] = new Path("-1,0 b g w o p o g w o p o g 0,1", new Position(936, 786), new Position(493,785));
+  path62 = new Path[4];
+  path62[3] = new Path("0,1 g o p -1,0", new Position(573, 183), new Position(573, 263),path7[0]);
+  path62[2] = new Path("-1,0 w o p o w o g p o w o p o g w o p o w o g 0,1", new Position(1383, 183), new Position(573, 183),path62[3]);
+  path62[1] = new Path("0,-1 g p o w o p o g w -1,0", new Position(1383, 505), new Position(1383, 183),path62[2]);
+  path62[0] = new Path("1,0 b o g 0,-1", new Position(1302, 505), new Position(1383, 505),path62[1]);
 
-  //Path 3
-  path3 = new Path[2];
-  path3[0] = new Path("-1,0 w p o w o p g o w o p o 0,-1", new Position(493,826), new Position(51, 826));
-  path3[1] = new Path("0,-1 o w g o p o w 0,-1", new Position(51,826), new Position(51,585));
+  //Path 5 - has the first stop sign(red tile)
+  path5 = new Path[6];
+  path5[5] = new Path("0,-1 w g p o w o 0,-1", new Position(1302,745), new Position(1302, 545));
+  path5[4] = new Path("1,0 p g o w o p o w 0,-1", new Position(1021,745), new Position(1302, 745),path5[5]);
+  path5[3] = new Path("0,1 o p o w g o p o w o p 1,0", new Position(1021,343), new Position(1021,745),path5[4]);
+  path5[2] = new Path("1,0 p o w o p g o w o 0,1", new Position(700,343), new Position(1021,343), path5[3]);
+  path5[1] = new Path("0,-1 g o p 1,0", new Position(700, 424), new Position(700,343), path5[2]);
+  path5[0] = new Path("1,0 o p r w g 0,-1", new Position(533, 424), new Position(700,424), path5[1]);
 
   //Path 4 - path41 is the higher one; path42 is the lower one
   path41 = new Path[3];
-  path41[0] = new Path("0,-1 b o g p o w 1,0", new Position(51, 545), new Position(51,344));
-  path41[1] = new Path("1,0 w o p o g w o p o w o g o 0,1", new Position(51,344), new Position(533,344));
-  path41[2] = new Path("0,1 o w o 1,0", new Position(533,344), new Position(533,424));
+  path41[2] = new Path("0,1 o w o 1,0", new Position(533,344), new Position(533,424),path5[0]);
+  path41[1] = new Path("1,0 w o p o g w o p o w o g o 0,1", new Position(51,344), new Position(533,344),path5[2]);
+  path41[0] = new Path("0,-1 b o g p o w 1,0", new Position(51, 545), new Position(51,344),path5[1]);
 
   path42 = new Path[2];
-  path42[0] = new Path("1,0 b o g p o w o p o g w o p 0,-1",new Position(51, 545), new Position(533,545));
-  path42[0] = new Path("0,-1 p o w o 1,0",new Position(533,545), new Position(533,424));
+  path42[1] = new Path("0,-1 p o w o 1,0",new Position(533,545), new Position(533,424),path5[0]);
+  path42[0] = new Path("1,0 b o g p o w o p o g w o p 0,-1",new Position(51, 545), new Position(533,545),path42[1]);
 
-  //Path 5 - has the first stop sign(red tile)
-  path5 = new Path[5];
+  //Path 3
+  path3 = new Path[2];
+  path3[1] = new Path("0,-1 o w g o p o w 0,-1", new Position(51,826), new Position(51,585));
+  path3[0] = new Path("-1,0 w p o w o p g o w o p o 0,-1", new Position(493,826), new Position(51, 826),path3[1]);
 
-  //Path 6
-  path61 = new Path[5];
+  //Path 2 - path21 is the longer one with many turns, path22 is the short one
+  path21 = new Path[7];
+  path21[6] = new Path("0,1 o p o g w -1,0", new Position(494,664), new Position(493,785),path3[0]);
+  path21[5] = new Path("-1,0 g p o w o 0,1", new Position(655,664), new Position(494,664),path21[6]);
+  path21[4] = new Path("0,1 p o w o g -1,0", new Position(653,503), new Position(655,664),path21[5]);
+  path21[3] = new Path("-1,0 g w o p 0,1", new Position(774, 504), new Position(653, 503),path21[4]);
+  path21[2] = new Path("0,1 o p g -1,0", new Position(774, 424), new Position(774, 504),path21[3]);
+  path21[1] = new Path("-1,0 o p o w o 0,1", new Position(936,424), new Position(774, 424),path21[2]);
+  path21[0] = new Path("0,-1 b g o w o p o w g o -1,0", new Position(936, 786), new Position(936,424),path21[1]);
 
-  path62 = new Path[2];
+  path22 = new Path[1];
+  path22[0] = new Path("-1,0 b g w o p o g w o p o g 0,1", new Position(936, 786), new Position(493,785),path3[0]);
 
-  //Path 7 - has the last stop sign
-
-
+  //Path 1
+  path1 = new Path[1];
+  path1[0] = new Path("-1,0 w o p o w o g p o w o p 0,-1", new Position(1393, 841), new Position(935, 826));
 }
+
 
 void draw() {
   image(boardImage,0,0);
 }
 
 /**
-* @return the Tile the player is currently on
-* if there isn't a tile found, return null
+* Returns the Tile the player is currently on
 */
 private Tile getTile() {
-  color toCheck = get((int)playerX,(int)playerY);
-  Tile toReturn=null;
-  for(int i=0;i<gameTiles.length;i++) {
-    if(toCheck==gameTiles[i].getColor())
-      toReturn=gameTiles[i];
-  }
-  return toReturn;
+  return currentPath.getCurrentTile();
 }
 
 /**
