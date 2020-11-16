@@ -15,19 +15,32 @@ import java.io.IOException;
 public class GameOfUMBC extends PApplet {
 
 final float MAX_GRADE = 100; // max grade a player can get
-final int MAX_TILES = 105; //the total tiles in the path the player can take.
+final int MAX_WEALTH = 100; //max money a player can have
+final int MAX_HAPPY = 100;//max happiness a player can have
+final int MAX_TILES = 157; //the most tiles in the paths the player can take.
 
-float playerGrade = 0; // the player doesn’t have a grade at the start
-int playerHappiness=100; //assume the player is happy at the start
-int playerWealth=10; //give player a $10 head start
+//constants for drawing player status bars
+final float WEALTH_X = 200;
+final float WEALTH_Y = 250;
+final float GRADE_X = 200;
+final float GRADE_Y = 250;
+final float HAPPY_X = 200;
+final float HAPPY_Y = 250;
+final float STATUSBAR_SIZE = 145;
 
-boolean gameStart=false;//determines whether the game has started yet
-boolean inputEvent=false;//used for when the player needs to give input
-boolean examEvent=false;//used for when the player needs to take an exam
-int changePath=0;//used for when the player needs to go left or right; 0 means they just go straight
-PImage boardImage; //the image of the board
-PImage[] dieFaces; //array that holds the six possible faces for a die to have
+//constants for drawing the dice
+final int DICE_X=1400;
+final int DICE_Y=63;
+final int DICE_HEIGHT=100;
+final int DICE_WIDTH=150;
 
+//constants for drawing the Event box
+final int EVENT_X=800;
+final int EVENT_Y=10;
+final int EVENT_WIDTH=600;
+final int EVENT_HEIGHT=150;
+
+//the hex value of each Tile's color
 final int ORANGE=0xffff5722;
 final int RED=0xffd50000;
 final int WHITE=0xffe7fbf0;
@@ -35,14 +48,17 @@ final int GREEN=0xff4caf50;
 final int BLUE=0xff03a9f4;
 final int PINK=0xffda54ec;
 
-final int ORANGE_EVENTS=19;
-final int WHITE_EVENTS=2;
-final int GREEN_EVENTS=2;
-final int BLUE_EVENTS=2;
-final int PINK_EVENTS=2;
-final int RED_EVENTS=2;
-final int DELTA_EXAM=25; //used to determine how much playerGrade changes when they take an exam
+//each type of stat that can be affected by an event, hence EventType
+public enum EventType {
+  GRADE,
+  HAPPY,
+  WEALTH;
+}
 
+//used to determine how much playerGrade changes when they take an exam
+final int DELTA_EXAM=25;
+
+//every path the player can take.
 Path[] path1;
 Path[] path21;
 Path[] path22;
@@ -53,32 +69,47 @@ Path[] path5;
 Path[] path61;
 Path[] path62;
 Path[] path7;
+
 //to be set to path1 once the game starts; it is used to track which path the player is currently on.
 Path currentPath;
 
-//each type of stat that can be affected by an event, hence EventType
-public enum EventType {
-  GRADE,
-  HAPPY,
-  WEALTH;
-}
+//images and fonts
+PImage boardImage;
+PImage dice;
+PFont mana;
 
-
-String playerName; //input by the user at the beginning of the game
-float playerX; //the x position of the player token
-float playerY; //the y pos of the player token
+//game loop booleans
+boolean gameStart=false;//determines whether the game has started yet
+boolean inputEvent=false;//used for when the player needs to give input
+boolean examEvent=false;//used for when the player needs to take an exam
+boolean rolled = false;
 boolean playerTurn=false;//determines if the player can roll a die or not
-String currentEvent="";//the current event that’s been registered by the game
 
+//input by the user at the beginning of the game
+String playerName;
+//tracks where the player is using their X and Y
+float playerX;
+float playerY;
+
+//player stats
+float playerGrade = 100; // the player has a 100/100 grade at the start
+int playerHappiness=100; //assume the player is happy at the start
+int playerWealth=10; //give player a $10 head start
+
+//the current event that’s been registered by the game
+String currentEvent="";
 
 public void setup() {
   
+  frameRate(60);
 
   boardImage = loadImage("./Board.png");
   createPaths();
+  dice = loadImage("pixel_dice.png");
+  mana = createFont("manaspc.ttf", 32);
 }
 
-/*
+/**
 * Initializes each path the player can take in sequential order
 * and then divided into two "sub paths" as denoted by the 1 in "path21" and 2 in "path22."
 * Because each path connects to the next one, they are initialized in reverse order.
@@ -90,7 +121,7 @@ private void createPaths()
   path7[1] = new Path("0,-1 o w o p o 0,0", new Position(51, 263), new Position(51, 103));
   path7[0] = new Path("-1,0 p o w o p g o p r w o p g o 0,-1", new Position(573, 263), new Position(51, 263), path7[1]);
 
-  //Path 6 - path61 is the shorter one; path62 is the one to the right/above of path61
+  //Path 6 - path61 is the shorter one; path62 is the one to the right/above of path61. 25 and 33 tiles respectively
   path61 = new Path[2];
   path61[1] = new Path("-1,0 w o p g o w o p o w g o p o w o w g p -1,0", new Position(1302, 263), new Position(573, 263),path7[0]);
   path61[0] = new Path("0,-1 b o g o p o w -1,0", new Position(1302, 505), new Position(1302, 263),path61[1]);
@@ -110,7 +141,7 @@ private void createPaths()
   path5[1] = new Path("0,-1 g o p 1,0", new Position(700, 424), new Position(700,343), path5[2]);
   path5[0] = new Path("1,0 o p r w g 0,-1", new Position(533, 424), new Position(700,424), path5[1]);
 
-  //Path 4 - path41 is the higher one; path42 is the lower one
+  //Path 4 - path41 is the higher one; path42 is the lower one. 20 and 16 respectively
   path41 = new Path[3];
   path41[2] = new Path("0,1 o w o 1,0", new Position(533,344), new Position(533,424),path5[0]);
   path41[1] = new Path("1,0 w o p o g w o p o w o g o 0,1", new Position(51,344), new Position(533,344),path5[2]);
@@ -143,16 +174,180 @@ private void createPaths()
   path1[0] = new Path("-1,0 w o p o w o g p o w o p 0,-1", new Position(1393, 841), new Position(935, 826));
 }
 
-
 public void draw() {
   image(boardImage,0,0);
+  drawRollButton();
+  drawPlayerStatus();
+  drawEventBox();
+  // displayInstructions();
+}
+
+int roll;
+public void mousePressed() {
+  if ((mouseX > DICE_X+50) && (mouseX < DICE_X+DICE_WIDTH-25) && (mouseY > DICE_Y) && (mouseY < DICE_Y+DICE_HEIGHT-25)) {
+    rolled=true;
+    roll = PApplet.parseInt(random(1, 7));
+    playerTurn=false;
+    if(inputEvent==false)
+    {
+      //movePlayer(roll);
+    }
+  }
 }
 
 /**
-* Returns the Tile the player is currently on
+* Draws the roll button(a die) and calls movePlayer when playerTurn==true.
+*
 */
-private Tile getTile() {
-  return currentPath.getCurrentTile();
+public void drawRollButton() {
+  image(dice, DICE_X, DICE_Y, DICE_WIDTH, DICE_HEIGHT);
+  // if(playerTurn)
+  // {
+    textFont(mana);
+    fill(255);
+    textSize(16);
+
+    if (rolled == false) {
+      // currentEvent= "Click the dice to roll!";//, DICE_X-150, DICE_Y-25);
+    } else {
+        // currentEvent="You rolled a " + roll;//, DICE_X-150, DICE_Y-25);
+        if(frameCount%120==0) {
+          rolled=false;
+        }
+      }
+  // }
+}
+
+// draws wealth, grade, and happiness status bars on the top right of the screen
+public void drawPlayerStatus() {
+  textSize(20);
+
+  fill(255);
+  rect(WEALTH_X+30, WEALTH_Y-225, STATUSBAR_SIZE, 12, 20);
+
+  fill(0, 255, 0);
+  text("$", WEALTH_X+5, WEALTH_Y-215);
+  rect(WEALTH_X+30,WEALTH_Y-225,STATUSBAR_SIZE*playerWealth/MAX_WEALTH, 12, 20);
+
+  fill(255);
+  rect(GRADE_X+215, GRADE_Y-225, STATUSBAR_SIZE, 12, 20);
+
+  fill(255, 0, 0);
+  rect(GRADE_X+215, GRADE_Y-225, STATUSBAR_SIZE*playerGrade/MAX_GRADE, 12, 20);
+  text("A+", GRADE_X+187, GRADE_Y-215);
+
+  fill(255);
+  rect(HAPPY_X+400, HAPPY_Y-225, STATUSBAR_SIZE, 12, 20);
+
+  fill(255, 255, 0);
+  rect(HAPPY_X+400, HAPPY_Y-225, STATUSBAR_SIZE*playerHappiness/MAX_HAPPY, 12, 20);
+  text(":)", HAPPY_X+375, HAPPY_Y-215);
+
+
+}
+
+/**
+* Draws text to the screen that explains what the player should do
+*/
+public void displayInstructions() {
+
+  //background
+  noStroke();
+  fill(255);
+  rect(350,200,500,400);
+
+  //sides
+  noStroke();
+  fill (233, 35, 148);
+  rect(350, 200, 500, 5);
+
+  noStroke();
+  fill (73, 222, 248);
+  rect(850, 200, 5, 400);
+
+  noStroke();
+  fill (147, 196, 125);
+  rect(350, 595, 500, 5);
+
+  noStroke();
+  fill (255, 217, 102);
+  rect(350, 200, 5, 400);
+
+  //text
+  String g = "Goal: Reach the end of the board. Get good grades, be financially stable, pass your exams, and have fun!";
+  fill(0);
+  text(g, 365, 210, 475, 150);
+
+  String i = "Instructions: You start each turn by rolling a die. Move to the # of spaces and an event may pop up. Keep rolling and playing until you reach the end of the board!";
+  fill(0);
+  text(i, 365, 400, 475, 400);
+}
+
+/**
+* draws a textbox that is populated with currentEvent.
+*/
+public void drawEventBox() {
+  //background
+  noStroke();
+  fill(255,255,255,192);
+  rect(EVENT_X,EVENT_Y,EVENT_WIDTH,EVENT_HEIGHT);
+
+  //sides
+  noStroke();
+  fill (233, 35, 148);
+  rect(EVENT_X, EVENT_Y, EVENT_WIDTH, 5);
+
+  noStroke();
+  fill (73, 222, 248);
+  rect(EVENT_X+EVENT_WIDTH, EVENT_Y, 5, EVENT_HEIGHT);
+
+  noStroke();
+  fill (147, 196, 125);
+  rect(EVENT_X, EVENT_Y+EVENT_HEIGHT, EVENT_WIDTH, 5);
+
+  noStroke();
+  fill (255, 217, 102);
+  rect(EVENT_X, EVENT_Y, 5, EVENT_HEIGHT);
+
+  //text
+  textSize(26);
+  fill(0);
+  text("Event: " + parseEvent(), EVENT_X+10, 50);
+}
+
+//takes currentEvent and returns a text-wrapped version so that it fits in the Event box.
+private String parseEvent()
+{
+  String[] toParse = currentEvent.split(" ");
+  String parsed = "";
+
+  int word=0;
+  ArrayList<Integer> breaks = new ArrayList<Integer>(1);
+
+  for(int i=0;i<currentEvent.length();i++)
+  {
+    if(currentEvent.charAt(i)==' ' && i!=0)
+    {
+      word++;
+    }
+    if(i % 27==0 && i!=0) {
+      breaks.add(currentEvent.indexOf(toParse[word]));
+    }
+  }
+
+  for(int a=0;a<currentEvent.length();a++)
+  {
+    for(int b=0;b<breaks.size();b++)
+    {
+      if(breaks.get(b)==a)
+      {
+        parsed+="\n";
+      }
+    }
+    parsed+=currentEvent.charAt(a);
+  }
+
+  return parsed;
 }
 
 /**
@@ -162,7 +357,7 @@ private Tile getTile() {
 */
 private void processTile()
 {
-  Tile toProcess = getTile();
+  Tile toProcess = currentPath.getCurrentTile();
   Event eventToProcess = toProcess.getEvents()[(int)random(0, toProcess.getEvents().length-1)];
   currentEvent = eventToProcess.getText();
 
@@ -198,9 +393,9 @@ private void processTile()
 }
 
 /**
-* calculates whether the player passes an exam
-* and changes playerGrade based on that
-* @param the value of the rolled die/dice
+* Calculates whether the player passes an exam
+* and changes playerGrade based on that.
+* Parameter: value of the rolled die/dice
 */
 private void processExam(int roll)
 {
@@ -309,7 +504,6 @@ class Path {
     String[] tempS = parseable[0].split(",");
     String[] tempE = parseable[parseable.length-1].split(",");
 
-    println(tempE[0]);
     //parses the start and end strings as "x,y"
     Position start = new Position(Integer.parseInt(tempS[0]),Integer.parseInt(tempS[1]));
     Position end = new Position(Integer.parseInt(tempE[0]),Integer.parseInt(tempE[1]));
@@ -352,8 +546,9 @@ class Path {
   }
 
   /**
-  * Tracks where the player is
-  *
+  * Updates the Path object's pointer variable so that it tracks where the player is.
+  * If the player is supposed to move to the next path, set the currentPath global
+  * variable to the next Path.
   */
   public void traversePath(int toTravel) {
     pointer+=toTravel;
@@ -365,28 +560,36 @@ class Path {
 
 }
 class Position {
-  private int x;
-  private int y;
+  private float x;
+  private float y;
 
   /**
   * Represents a position in 2D space using X and Y
   */
-  public Position(int x, int y) {
+  public Position(float x, float y) {
     this.x=x;
     this.y=y;
   }
 
   //returns the x value
-  public int getX() {return x;}
+  public float getX() {return x;}
 
   //returns the y value
-  public int getY() {return y;}
+  public float getY() {return y;}
 }
 class Tile {
   private int tileColor;
   private Event[] events;
   private Position tilePos;
   private Position direction;
+
+  //constants used for initialization of events
+  private final int ORANGE_EVENTS=19;
+  private final int WHITE_EVENTS=2;
+  private final int GREEN_EVENTS=2;
+  private final int BLUE_EVENTS=2;
+  private final int PINK_EVENTS=2;
+  private final int RED_EVENTS=2;
 
   /**
   * Constructs the Tile object with a color, direction, and position.

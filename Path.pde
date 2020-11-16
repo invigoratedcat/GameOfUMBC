@@ -88,13 +88,6 @@ class Path {
   }
 
   /**
-  * Returns the next Path if it's set, otherwise it returns null.
-  */
-  public Path getNextPath() {
-      return nextPath;
-  }
-
-  /**
   * Sets the next path after this one.
   * Use when the player decides which path to take before moving them.
   */
@@ -103,13 +96,15 @@ class Path {
   }
 
   /**
-  * Tracks where the player is
-  *
+  * Updates the Path object's pointer variable so that it tracks where the player is.
+  * If the player is supposed to move to the next path, set the currentPath global
+  * variable to the next Path.
   */
   public void traversePath(int toTravel) {
     pointer+=toTravel;
     if(pointer>=tiles.length-1) {
       currentPath = nextPath;
+      pathNumber++;
     }
   }
 

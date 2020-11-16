@@ -4,6 +4,14 @@ class Tile {
   private Position tilePos;
   private Position direction;
 
+  //constants used for initialization of events
+  private final int ORANGE_EVENTS=19;
+  private final int WHITE_EVENTS=2;
+  private final int GREEN_EVENTS=2;
+  private final int BLUE_EVENTS=2;
+  private final int PINK_EVENTS=2;
+  private final int RED_EVENTS=2;
+
   /**
   * Constructs the Tile object with a color, direction, and position.
   * Each tile is 35x35 pixels
