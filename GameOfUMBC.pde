@@ -159,10 +159,31 @@ void draw() {
   // displayInstructions();
 }
 
-//
+//handles player input
 int roll;
 void mousePressed() {
   if(playerTurn) {
+    textFont(mana);
+    fill(255);
+    textSize(16);
+    if(inputEvent==false){
+      if (rolled == false) {
+         currentEvent= "Click the dice to roll!";//, DICE_X-150, DICE_Y-25);
+      } else {
+        currentEvent="You rolled a " + roll;//, DICE_X-150, DICE_Y-25);
+        if(frameCount%120==0) {
+          rolled=false;
+        }
+      }
+    } else {
+      if (rolled) {
+        currentEvent="You rolled a " + roll;
+        if(frameCount%120==0) {
+          rolled=false;
+        }
+      }
+    }
+    //if the player clicked the button, calculate a roll
     if ((mouseX > DICE_X+50) && (mouseX < DICE_X+DICE_WIDTH-25) && (mouseY > DICE_Y) && (mouseY < DICE_Y+DICE_HEIGHT-25)) {
       rolled=true;
       roll = int(random(1, 7));
@@ -172,6 +193,9 @@ void mousePressed() {
         //movePlayer(roll);
       } else if(examEvent) {
         processExam(roll);
+      } else {
+        //inputEvent is true; the player is supposed to roll the die
+        currentEvent+= "Click the dice to roll!";
       }
     }
   }
@@ -183,23 +207,7 @@ void mousePressed() {
 */
 void drawRollButton() {
   image(dice, DICE_X, DICE_Y, DICE_WIDTH, DICE_HEIGHT);
-  // if(playerTurn)
-  // {
-    textFont(mana);
-    fill(255);
-    textSize(16);
-
-    if (rolled == false) {
-      // currentEvent= "Click the dice to roll!";//, DICE_X-150, DICE_Y-25);
-    } else {
-        // currentEvent="You rolled a " + roll;//, DICE_X-150, DICE_Y-25);
-        if(frameCount%120==0) {
-          rolled=false;
-        }
-      }
-  // }
 }
-
 // draws wealth, grade, and happiness status bars on the top right of the screen
 void drawPlayerStatus() {
   textSize(20);
@@ -346,7 +354,7 @@ private void processTile()
   if(toProcess.getColor()==RED)
   {
     examEvent=true;
-    inputEvent=false;
+    inputEvent=true;
   }
   else if(toProcess.getColor() != BLUE)
   {
@@ -389,11 +397,13 @@ private void processExam(int roll)
     if(playerGrade+DELTA_EXAM < MAX_GRADE)
       playerGrade+=DELTA_EXAM;
     else playerGrade=MAX_GRADE;
+    currentEvent="Congrats! You passed the exam.";
   }
   else
   {
     if(playerGrade-DELTA_EXAM>=0)
       playerGrade-=DELTA_EXAM;
     else playerGrade=0;
+    currentEvent="You failed the exam...";
   }
 }
