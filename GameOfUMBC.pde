@@ -73,6 +73,12 @@ float playerGrade = 100; // the player has a 100/100 grade at the start
 int playerHappiness=100; //assume the player is happy at the start
 int playerWealth=10; //give player a $10 head start
 
+final int TEXT_SIZE=20;
+//X and Y position of the "Start" button
+final int START_BUTTON_X=600;
+final int START_BUTTON_Y=800;
+final int START_BUTTON_SIZE=200;
+
 //the current event that’s been registered by the game
 String currentEvent="";
 
@@ -152,50 +158,78 @@ private void createPaths()
 }
 
 void draw() {
-  image(boardImage,0,0);
-  drawRollButton();
-  drawPlayerStatus();
-  drawEventBox();
-  // displayInstructions();
+  if(!gameStart) {
+    drawStartMenu();
+  } else {
+    if(gameEnded()) {
+      displayEndScreen();
+    } else {
+      image(boardImage,0,0);
+      drawRollButton();
+      drawPlayerStatus();
+      drawEventBox();
+      // displayInstructions();
+      // displayEndScreen();
+
+    }
+  }
+}
+
+/**
+* Returns if the game has ended
+*/
+boolean gameEnded() {
+  return (currentPath.getNextPath()==null && currentPath==path7[1]);
 }
 
 //handles player input
 int roll;
 void mousePressed() {
-  if(playerTurn) {
-    textFont(mana);
-    fill(255);
-    textSize(16);
-    if(inputEvent==false){
-      if (rolled == false) {
-         currentEvent= "Click the dice to roll!";//, DICE_X-150, DICE_Y-25);
-      } else {
-        currentEvent="You rolled a " + roll;//, DICE_X-150, DICE_Y-25);
-        if(frameCount%120==0) {
-          rolled=false;
-        }
-      }
-    } else {
-      if (rolled) {
-        currentEvent="You rolled a " + roll;
-        if(frameCount%120==0) {
-          rolled=false;
-        }
-      }
+
+  //check if the game has started
+  if(!gameStart) {
+    //check if the Start button was pressed
+    if( (mouseX > START_BUTTON_X) && (mouseX < START_BUTTON_X+START_BUTTON_SIZE) && (mouseY > START_BUTTON_Y) && (mouseY < START_BUTTON_Y+50)) {
+      gameStart=true;
     }
-    //if the player clicked the button, calculate a roll
-    if ((mouseX > DICE_X+50) && (mouseX < DICE_X+DICE_WIDTH-25) && (mouseY > DICE_Y) && (mouseY < DICE_Y+DICE_HEIGHT-25)) {
-      rolled=true;
-      roll = int(random(1, 7));
-      playerTurn=false;
-      if(inputEvent==false)
-      {
-        //movePlayer(roll);
-      } else if(examEvent) {
-        processExam(roll);
+  } else {
+    //if it's the player's turn
+    if(playerTurn) {
+      textFont(mana);
+      fill(255);
+      textSize(16);
+      //if the player isn't on a blue or red tile
+      if(inputEvent==false){
+        if (rolled == false) {
+           currentEvent= "Click the dice to roll!";//, DICE_X-150, DICE_Y-25);
+        } else {
+          currentEvent="You rolled a " + roll;//, DICE_X-150, DICE_Y-25);
+          if(frameCount%120==0) {
+            rolled=false;
+          }
+        }
       } else {
-        //inputEvent is true; the player is supposed to roll the die
-        currentEvent+= "Click the dice to roll!";
+        if (rolled) {
+          currentEvent="You rolled a " + roll;
+          if(frameCount%120==0) {
+            rolled=false;
+          }
+        }
+      }
+      //if the player clicked the dice button, calculate a roll
+      if ((mouseX > DICE_X+50) && (mouseX < DICE_X+DICE_WIDTH-25) && (mouseY > DICE_Y) && (mouseY < DICE_Y+DICE_HEIGHT-25)) {
+        rolled=true;
+        roll = int(random(1, 7));
+        playerTurn=false;
+        if(inputEvent==false)
+        {
+          //movePlayer(roll);
+        } else if(examEvent) {
+          processExam(roll);
+        } else {
+          //inputEvent is true; the player is supposed to roll the die
+          currentEvent+= "Click the dice to roll!";
+        }
       }
     }
   }
@@ -210,7 +244,7 @@ void drawRollButton() {
 }
 // draws wealth, grade, and happiness status bars on the top right of the screen
 void drawPlayerStatus() {
-  textSize(20);
+  textSize(TEXT_SIZE);
 
   fill(255);
   rect(WEALTH_X+30, WEALTH_Y-225, STATUSBAR_SIZE, 12, 20);
@@ -237,6 +271,38 @@ void drawPlayerStatus() {
 }
 
 /**
+* draws the Start menu and the start "button"
+*/
+void drawStartMenu(){
+  fill(200);
+  rect(0,0,width,height);
+
+  fill(#ffc0cb);
+  textSize(50);
+  text("Game Of UMBC!", width/2 - 200,height*0.1);
+
+  displayInstructions();
+
+  fill(50);
+  rect(START_BUTTON_X,START_BUTTON_Y,START_BUTTON_SIZE,50);
+  fill(255);
+  textSize(20);
+  text("Click to start", START_BUTTON_X+10,START_BUTTON_Y+25);
+
+}
+
+void drawChoices(){
+  textSize(50);
+  currentEvent = "Select your choice!";
+  textSize(20);
+  text("Left", 100,280);
+  rect(100,300,100,50);
+  text("Right", 300,280);
+  rect(300,300,100,50);
+
+}
+
+/**
 * Draws text to the screen that explains what the player should do
 */
 void displayInstructions() {
@@ -244,12 +310,12 @@ void displayInstructions() {
   //background
   noStroke();
   fill(255);
-  rect(350,200,500,400);
+  rect(350,200,800,400);
 
   //sides
   noStroke();
   fill (233, 35, 148);
-  rect(350, 200, 500, 5);
+  rect(350, 200, 800, 5);
 
   noStroke();
   fill (73, 222, 248);
@@ -257,20 +323,56 @@ void displayInstructions() {
 
   noStroke();
   fill (147, 196, 125);
-  rect(350, 595, 500, 5);
+  rect(350, 595, 800, 5);
 
   noStroke();
   fill (255, 217, 102);
   rect(350, 200, 5, 400);
 
   //text
-  String g = "Goal: Reach the end of the board. Get good grades, be financially stable, pass your exams, and have fun!";
+  String g = "Goal: Reach the end of the board. \nGet good grades, be financially stable, pass your exams, and have fun!";
   fill(0);
-  text(g, 365, 210, 475, 150);
+  text(g, 365, 210, 1000, 150);
 
   String i = "Instructions: You start each turn by rolling a die. Move to the # of spaces and an event may pop up. Keep rolling and playing until you reach the end of the board!";
   fill(0);
-  text(i, 365, 400, 475, 400);
+  text(i, 365, 400, 875, 400);
+}
+
+/**
+* shows the end screen, which shows the player's stats
+*/
+void displayEndScreen() {
+
+  fill(50);
+  rect(0, 0, width,height);
+
+  fill(255);
+  textSize(48);
+  text("The Semester is Over! Here are your results:", GRADE_X, GRADE_Y-100);
+
+  fill(255);
+  rect(WEALTH_X+200, WEALTH_Y-50, STATUSBAR_SIZE-100, STATUSBAR_SIZE+150, STATUSBAR_SIZE-10);
+  textSize(70);
+  fill(0, 255, 0);
+  rect(WEALTH_X+200, WEALTH_Y-50, STATUSBAR_SIZE-100, (STATUSBAR_SIZE+150)*playerWealth/MAX_WEALTH, STATUSBAR_SIZE-10);
+  text("$", WEALTH_X+257, WEALTH_Y+250);
+
+  fill(255);
+  rect(GRADE_X+350, GRADE_Y-50, STATUSBAR_SIZE-100, STATUSBAR_SIZE+150, STATUSBAR_SIZE-10);
+  textSize(65);
+  fill(255, 0, 0);
+  rect(GRADE_X+350, GRADE_Y-50, STATUSBAR_SIZE-100, (STATUSBAR_SIZE+150)*playerGrade/MAX_GRADE, STATUSBAR_SIZE-10);
+  text("A°", GRADE_X+400, GRADE_Y+250);
+
+  fill(255);
+  rect(HAPPY_X+500, HAPPY_Y-50, STATUSBAR_SIZE-100, STATUSBAR_SIZE+150, STATUSBAR_SIZE-10);
+  noStroke();
+  fill(255, 255, 0);
+  rect(HAPPY_X+500, HAPPY_Y-50, STATUSBAR_SIZE-100, STATUSBAR_SIZE+150*playerHappiness/MAX_HAPPY, STATUSBAR_SIZE-10);
+  text(":)", HAPPY_X+550, HAPPY_Y+250);
+
+  textSize(TEXT_SIZE);
 }
 
 /**

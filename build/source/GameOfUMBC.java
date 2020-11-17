@@ -59,19 +59,12 @@ public enum EventType {
 final int DELTA_EXAM=25;
 
 //every path the player can take.
-Path[] path1;
-Path[] path21;
-Path[] path22;
-Path[] path3;
-Path[] path41;
-Path[] path42;
-Path[] path5;
-Path[] path61;
-Path[] path62;
-Path[] path7;
+Path[] path1, path21, path22, path3, path41, path42, path5, path61, path62, path7;
 
 //to be set to path1 once the game starts; it is used to track which path the player is currently on.
 Path currentPath;
+//set to 1 when the game starts. Should be used for determining the next path the player chooses.
+int pathNumber;
 
 //images and fonts
 PImage boardImage;
@@ -95,6 +88,11 @@ float playerY;
 float playerGrade = 100; // the player has a 100/100 grade at the start
 int playerHappiness=100; //assume the player is happy at the start
 int playerWealth=10; //give player a $10 head start
+
+final int TEXT_SIZE=20;
+//X and Y position of the "Start" button
+final int START_BUTTON_X=600;
+final int START_BUTTON_Y=800;
 
 //the current event that’s been registered by the game
 String currentEvent="";
@@ -180,17 +178,48 @@ public void draw() {
   drawPlayerStatus();
   drawEventBox();
   // displayInstructions();
+  // displayEndScreen();
+  drawStartMenu();
 }
 
+//handles player input
 int roll;
 public void mousePressed() {
-  if ((mouseX > DICE_X+50) && (mouseX < DICE_X+DICE_WIDTH-25) && (mouseY > DICE_Y) && (mouseY < DICE_Y+DICE_HEIGHT-25)) {
-    rolled=true;
-    roll = PApplet.parseInt(random(1, 7));
-    playerTurn=false;
-    if(inputEvent==false)
-    {
-      //movePlayer(roll);
+  if(playerTurn) {
+    textFont(mana);
+    fill(255);
+    textSize(16);
+    if(inputEvent==false){
+      if (rolled == false) {
+         currentEvent= "Click the dice to roll!";//, DICE_X-150, DICE_Y-25);
+      } else {
+        currentEvent="You rolled a " + roll;//, DICE_X-150, DICE_Y-25);
+        if(frameCount%120==0) {
+          rolled=false;
+        }
+      }
+    } else {
+      if (rolled) {
+        currentEvent="You rolled a " + roll;
+        if(frameCount%120==0) {
+          rolled=false;
+        }
+      }
+    }
+    //if the player clicked the button, calculate a roll
+    if ((mouseX > DICE_X+50) && (mouseX < DICE_X+DICE_WIDTH-25) && (mouseY > DICE_Y) && (mouseY < DICE_Y+DICE_HEIGHT-25)) {
+      rolled=true;
+      roll = PApplet.parseInt(random(1, 7));
+      playerTurn=false;
+      if(inputEvent==false)
+      {
+        //movePlayer(roll);
+      } else if(examEvent) {
+        processExam(roll);
+      } else {
+        //inputEvent is true; the player is supposed to roll the die
+        currentEvent+= "Click the dice to roll!";
+      }
     }
   }
 }
@@ -201,26 +230,10 @@ public void mousePressed() {
 */
 public void drawRollButton() {
   image(dice, DICE_X, DICE_Y, DICE_WIDTH, DICE_HEIGHT);
-  // if(playerTurn)
-  // {
-    textFont(mana);
-    fill(255);
-    textSize(16);
-
-    if (rolled == false) {
-      // currentEvent= "Click the dice to roll!";//, DICE_X-150, DICE_Y-25);
-    } else {
-        // currentEvent="You rolled a " + roll;//, DICE_X-150, DICE_Y-25);
-        if(frameCount%120==0) {
-          rolled=false;
-        }
-      }
-  // }
 }
-
 // draws wealth, grade, and happiness status bars on the top right of the screen
 public void drawPlayerStatus() {
-  textSize(20);
+  textSize(TEXT_SIZE);
 
   fill(255);
   rect(WEALTH_X+30, WEALTH_Y-225, STATUSBAR_SIZE, 12, 20);
@@ -247,6 +260,38 @@ public void drawPlayerStatus() {
 }
 
 /**
+* draws the Start menu and the start "button"
+*/
+public void drawStartMenu(){
+  fill(200);
+  rect(0,0,width,height);
+
+  fill(0xffffc0cb);
+  textSize(50);
+  text("Game Of UMBC!", width/2 - 200,height*0.1f);
+
+  displayInstructions();
+
+  fill(50);
+  rect(START_BUTTON_X,START_BUTTON_Y,200,50);
+  fill(255);
+  textSize(20);
+  text("Click to start", START_BUTTON_X+10,START_BUTTON_Y+25);
+
+}
+
+public void drawChoices(){
+  textSize(50);
+  currentEvent = "Select your choice!";
+  textSize(20);
+  text("Left", 100,280);
+  rect(100,300,100,50);
+  text("Right", 300,280);
+  rect(300,300,100,50);
+
+}
+
+/**
 * Draws text to the screen that explains what the player should do
 */
 public void displayInstructions() {
@@ -254,12 +299,12 @@ public void displayInstructions() {
   //background
   noStroke();
   fill(255);
-  rect(350,200,500,400);
+  rect(350,200,800,400);
 
   //sides
   noStroke();
   fill (233, 35, 148);
-  rect(350, 200, 500, 5);
+  rect(350, 200, 800, 5);
 
   noStroke();
   fill (73, 222, 248);
@@ -267,20 +312,56 @@ public void displayInstructions() {
 
   noStroke();
   fill (147, 196, 125);
-  rect(350, 595, 500, 5);
+  rect(350, 595, 800, 5);
 
   noStroke();
   fill (255, 217, 102);
   rect(350, 200, 5, 400);
 
   //text
-  String g = "Goal: Reach the end of the board. Get good grades, be financially stable, pass your exams, and have fun!";
+  String g = "Goal: Reach the end of the board. \nGet good grades, be financially stable, pass your exams, and have fun!";
   fill(0);
-  text(g, 365, 210, 475, 150);
+  text(g, 365, 210, 1000, 150);
 
   String i = "Instructions: You start each turn by rolling a die. Move to the # of spaces and an event may pop up. Keep rolling and playing until you reach the end of the board!";
   fill(0);
-  text(i, 365, 400, 475, 400);
+  text(i, 365, 400, 875, 400);
+}
+
+/**
+* shows the end screen, which shows the player's stats
+*/
+public void displayEndScreen() {
+
+  fill(50);
+  rect(0, 0, width,height);
+
+  fill(255);
+  textSize(48);
+  text("The Semester is Over! Here are your results:", GRADE_X, GRADE_Y-100);
+
+  fill(255);
+  rect(WEALTH_X+200, WEALTH_Y-50, STATUSBAR_SIZE-100, STATUSBAR_SIZE+150, STATUSBAR_SIZE-10);
+  textSize(70);
+  fill(0, 255, 0);
+  rect(WEALTH_X+200, WEALTH_Y-50, STATUSBAR_SIZE-100, (STATUSBAR_SIZE+150)*playerWealth/MAX_WEALTH, STATUSBAR_SIZE-10);
+  text("$", WEALTH_X+257, WEALTH_Y+250);
+
+  fill(255);
+  rect(GRADE_X+350, GRADE_Y-50, STATUSBAR_SIZE-100, STATUSBAR_SIZE+150, STATUSBAR_SIZE-10);
+  textSize(65);
+  fill(255, 0, 0);
+  rect(GRADE_X+350, GRADE_Y-50, STATUSBAR_SIZE-100, (STATUSBAR_SIZE+150)*playerGrade/MAX_GRADE, STATUSBAR_SIZE-10);
+  text("A°", GRADE_X+400, GRADE_Y+250);
+
+  fill(255);
+  rect(HAPPY_X+500, HAPPY_Y-50, STATUSBAR_SIZE-100, STATUSBAR_SIZE+150, STATUSBAR_SIZE-10);
+  noStroke();
+  fill(255, 255, 0);
+  rect(HAPPY_X+500, HAPPY_Y-50, STATUSBAR_SIZE-100, STATUSBAR_SIZE+150*playerHappiness/MAX_HAPPY, STATUSBAR_SIZE-10);
+  text(":)", HAPPY_X+550, HAPPY_Y+250);
+
+  textSize(TEXT_SIZE);
 }
 
 /**
@@ -374,13 +455,16 @@ private void processTile()
       switch(eventToProcess.getType()[i])
       {
         case GRADE:
-          playerGrade+=eventToProcess.getStatChange()[i];
+          if(playerGrade+eventToProcess.getStatChange()[i]<MAX_GRADE && playerGrade+eventToProcess.getStatChange()[i]>0)
+            playerGrade+=eventToProcess.getStatChange()[i];
           break;
         case HAPPY:
-          playerHappiness+=eventToProcess.getStatChange()[i];
+          if(playerHappiness+eventToProcess.getStatChange()[i]<MAX_HAPPY && playerHappiness+eventToProcess.getStatChange()[i]>0)
+            playerHappiness+=eventToProcess.getStatChange()[i];
           break;
         case WEALTH:
-          playerWealth+=eventToProcess.getStatChange()[i];
+          if(playerWealth+eventToProcess.getStatChange()[i]<MAX_WEALTH && playerWealth+eventToProcess.getStatChange()[i]>0)
+            playerWealth+=eventToProcess.getStatChange()[i];
           break;
       }
     }
@@ -401,11 +485,17 @@ private void processExam(int roll)
 {
   if(((playerHappiness)/10) + (((playerGrade)/10)*roll) >= 60.0f)
   {
-    playerGrade+=DELTA_EXAM;
+    if(playerGrade+DELTA_EXAM < MAX_GRADE)
+      playerGrade+=DELTA_EXAM;
+    else playerGrade=MAX_GRADE;
+    currentEvent="Congrats! You passed the exam.";
   }
   else
   {
-    playerGrade-=DELTA_EXAM;
+    if(playerGrade-DELTA_EXAM>=0)
+      playerGrade-=DELTA_EXAM;
+    else playerGrade=0;
+    currentEvent="You failed the exam...";
   }
 }
 class Event {
@@ -554,6 +644,7 @@ class Path {
     pointer+=toTravel;
     if(pointer>=tiles.length-1) {
       currentPath = nextPath;
+      pathNumber++;
     }
   }
 
@@ -584,8 +675,8 @@ class Tile {
   private Position direction;
 
   //constants used for initialization of events
-  private final int ORANGE_EVENTS=19;
-  private final int WHITE_EVENTS=2;
+  private final int ORANGE_EVENTS=14;
+  private final int WHITE_EVENTS=7;
   private final int GREEN_EVENTS=2;
   private final int BLUE_EVENTS=2;
   private final int PINK_EVENTS=2;
@@ -608,32 +699,38 @@ class Tile {
      events = new Event[ORANGE_EVENTS];
        events[0] = new Event("Slept in and missed class", EventType.GRADE, -5);
        events[1] = new Event("Went out with a friends to a party", new EventType[]{EventType.HAPPY,EventType.WEALTH}, new int[]{3,-2});
-       events[2] = new Event("Grandma sent a care package filled with cookies", EventType.HAPPY, 10);
-       events[3] = new Event("Went to the library to study", EventType.GRADE, 2);
-       events[4] = new Event("Spent your summer working at Sunglasses Shack", EventType.WEALTH, 50);
-       events[5] = new Event("Asked out your crush, got rejected", EventType.HAPPY, -40);
-       events[6] = new Event("Saw a flier on campus for free food", EventType.HAPPY, 2);
-       events[7] = new Event("Spent precious money for food on books and supplies", new EventType[]{EventType.WEALTH, EventType.GRADE}, new int[]{-5,3});
-       events[8] = new Event("Got an extension on your essay", EventType.GRADE, 2);
-       events[9] = new Event("Purchased one banana", EventType.WEALTH, -3);
-       events[10] = new Event("Got a scholarship!", EventType.WEALTH, 50);
-       events[11] = new Event("Your \"buddies\" crashed your car, Pay for repairs", EventType.WEALTH, -50);
-       events[12] = new Event("Went on an Amazon shopping spree", EventType.WEALTH, -50);
-       events[13] = new Event("Internet connection dropped while presenting on Blackboard", EventType.GRADE, -10);
-       events[14] = new Event("Dog ate your COMP 101 homework, it was only a couple of bytes", EventType.GRADE, -3);
-       events[15] = new Event("Went to Office Hours", EventType.GRADE, 5);
-       events[16] = new Event("Didn't check RateMyProfessor but still managed to get Prof B", EventType.HAPPY, 80);
-       events[17] = new Event("Your roommate got into feng shui, Why is my bed over there?!", EventType.HAPPY, -4);
-       events[18] = new Event( "Pulled an all nighter to take notes and study", new EventType[]{EventType.HAPPY,EventType.GRADE},new int[]{-10,5});
+       events[2] = new Event("Went to the library to study", EventType.GRADE, 2);
+       events[3] = new Event("Spent your summer working at Sunglasses Shack", EventType.WEALTH, 50);
+       events[4] = new Event("Spent precious money for food on books and supplies", new EventType[]{EventType.WEALTH, EventType.GRADE}, new int[]{-5,3});
+       events[5] = new Event("Got an extension on your essay", EventType.GRADE, 2);
+       events[6] = new Event("Purchased one banana", EventType.WEALTH, -3);
+       events[7] = new Event("Got a scholarship!", EventType.WEALTH, 50);
+       events[8] = new Event("Your \"buddies\" crashed your car, Pay for repairs", EventType.WEALTH, -50);
+       events[9] = new Event("Went on an Amazon shopping spree", EventType.WEALTH, -50);
+       events[10] = new Event("Internet connection dropped while presenting on Blackboard", EventType.GRADE, -10);
+       events[11] = new Event("Dog ate your COMP 101 homework, it was only a couple of bytes", EventType.GRADE, -3);
+       events[12] = new Event("Went to Office Hours", EventType.GRADE, 5);
+       events[13] = new Event("Your new next gen console arrived.", new EventType[]{EventType.HAPPY, EventType.GRADE, EventType.WEALTH}, new int[]{80,-40,-65});
        break;
     case PINK:
        events = new Event[PINK_EVENTS];
        break;
-     case BLUE:
+    case BLUE:
        events = new Event[BLUE_EVENTS];
        break;
-     case RED:
+    case RED:
        events = new Event[RED_EVENTS];
+       events[0] = new Event("You have to take an exam.", EventType.GRADE, 0);
+       break;
+    case WHITE:
+       events = new Event[WHITE_EVENTS];
+       events[0] = new Event("Grandma sent a care package filled with cookies.", EventType.HAPPY, 10);
+       events[1] = new Event("Asked out your crush, got rejected.", EventType.HAPPY, -40);
+       events[2] = new Event("Saw a flier on campus for free food.", EventType.HAPPY, 2);
+       events[3] = new Event("Didn't check RateMyProfessor but still managed to get Prof B.", EventType.HAPPY, 80);
+       events[4] = new Event("Your roommate got into feng shui, Why is my bed over there?!", EventType.HAPPY, -4);
+       events[5] = new Event("Pulled an all nighter to take notes and study.", new EventType[]{EventType.HAPPY,EventType.GRADE},new int[]{-10,5});
+       events[6] = new Event("Your roommate tested positive for COVID-19.", new EventType[]{EventType.HAPPY, EventType.GRADE}, new int[]{-50,5});
        break;
 
     }

@@ -50,6 +50,7 @@ class Tile {
        break;
     case RED:
        events = new Event[RED_EVENTS];
+       events[0] = new Event("You have to take an exam.", EventType.GRADE, 0);
        break;
     case WHITE:
        events = new Event[WHITE_EVENTS];

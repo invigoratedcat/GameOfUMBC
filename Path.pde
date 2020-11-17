@@ -108,5 +108,6 @@ class Path {
     }
   }
 
-
+  //returns the next Path object the player will "be on"
+  public Path getNextPath() {return nextPath;}
 }
