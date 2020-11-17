@@ -32,6 +32,7 @@ final int GREEN=#4caf50;
 final int BLUE=#03a9f4;
 final int PINK=#da54ec;
 
+
 //each type of stat that can be affected by an event, hence EventType
 public enum EventType {
   GRADE,
@@ -41,6 +42,19 @@ public enum EventType {
 
 //used to determine how much playerGrade changes when they take an exam
 final int DELTA_EXAM=25;
+
+final int TEXT_SIZE=20;
+//X and Y position of the "Start" button
+final int START_BUTTON_X=600;
+final int START_BUTTON_Y=800;
+final int START_BUTTON_SIZE=200;
+
+//x,y and width, height of the choice buttons
+final int CHOICES_LEFT_X=900;
+final int CHOICES_RIGHT_X=1050;
+final int CHOICES_Y=120;
+final int CHOICES_WIDTH=120;
+final int CHOICES_HEIGHT=25;
 
 //every path the player can take.
 Path[] path1, path21, path22, path3, path41, path42, path5, path61, path62, path7;
@@ -54,6 +68,7 @@ int pathNumber;
 PImage boardImage;
 PImage dice;
 PFont mana;
+PImage playerToken;
 
 //game loop booleans
 boolean gameStart=false;//determines whether the game has started yet
@@ -65,19 +80,13 @@ boolean playerTurn=false;//determines if the player can roll a die or not
 //input by the user at the beginning of the game
 String playerName;
 //tracks where the player is using their X and Y
-float playerX;
-float playerY;
+float playerX=1394;
+float playerY=842;
 
 //player stats
 float playerGrade = 100; // the player has a 100/100 grade at the start
 int playerHappiness=100; //assume the player is happy at the start
 int playerWealth=10; //give player a $10 head start
-
-final int TEXT_SIZE=20;
-//X and Y position of the "Start" button
-final int START_BUTTON_X=600;
-final int START_BUTTON_Y=800;
-final int START_BUTTON_SIZE=200;
 
 //the current event that’s been registered by the game
 String currentEvent="";
@@ -86,11 +95,15 @@ void setup() {
   size(1536,900);
   frameRate(60);
 
+  //load every image, then create the paths
   boardImage = loadImage("./Board.png");
-  createPaths();
+  playerToken = loadImage("africanamerican_girl.png");
+
   dice = loadImage("pixel_dice.png");
   mana = createFont("manaspc.ttf", 32);
+  createPaths();
 }
+
 
 /**
 * Initializes each path the player can take in sequential order
@@ -158,6 +171,7 @@ private void createPaths()
 }
 
 void draw() {
+
   if(!gameStart) {
     drawStartMenu();
   } else {
@@ -168,9 +182,9 @@ void draw() {
       drawRollButton();
       drawPlayerStatus();
       drawEventBox();
-      // displayInstructions();
-      // displayEndScreen();
-
+      drawPlayerToken();
+      if(inputEvent)
+        drawChoices();
     }
   }
 }
@@ -179,7 +193,20 @@ void draw() {
 * Returns if the game has ended
 */
 boolean gameEnded() {
-  return (currentPath.getNextPath()==null && currentPath==path7[1]);
+  boolean toReturn=false;
+  try {
+    toReturn = (currentPath.getNextPath()==null && currentPath==path7[1]);
+  }
+  catch(NullPointerException e)
+  {
+    toReturn=false;
+  }
+  return toReturn;
+}
+
+//draws the player token
+void drawPlayerToken(){
+   image(playerToken, playerX-40, playerY-40, 70, 70);
 }
 
 //handles player input
@@ -188,9 +215,12 @@ void mousePressed() {
 
   //check if the game has started
   if(!gameStart) {
-    //check if the Start button was pressed
+    //check if the Start button was pressed. if so, start the game
     if( (mouseX > START_BUTTON_X) && (mouseX < START_BUTTON_X+START_BUTTON_SIZE) && (mouseY > START_BUTTON_Y) && (mouseY < START_BUTTON_Y+50)) {
       gameStart=true;
+      playerTurn=true;
+      currentPath=path1[0];
+      currentEvent="Click the dice to roll!";
     }
   } else {
     //if it's the player's turn
@@ -198,40 +228,90 @@ void mousePressed() {
       textFont(mana);
       fill(255);
       textSize(16);
-      //if the player isn't on a blue or red tile
+
+      //if the player isn't on a blue or red tile, their roll just moves them
       if(inputEvent==false){
-        if (rolled == false) {
-           currentEvent= "Click the dice to roll!";//, DICE_X-150, DICE_Y-25);
-        } else {
-          currentEvent="You rolled a " + roll;//, DICE_X-150, DICE_Y-25);
-          if(frameCount%120==0) {
-            rolled=false;
-          }
-        }
-      } else {
-        if (rolled) {
+        if ((mouseX > DICE_X+50) && (mouseX < DICE_X+DICE_WIDTH-25) && (mouseY > DICE_Y) && (mouseY < DICE_Y+DICE_HEIGHT-25)) {
+          roll = rollDie();
+          playerTurn=false;
           currentEvent="You rolled a " + roll;
-          if(frameCount%120==0) {
-            rolled=false;
+          movePlayer(roll);
+        }
+      //inputEvent is true; the player is supposed to roll the die
+      } else {
+        //if the player is on a red tile, they roll to pass an exam
+        if(examEvent) {
+          currentEvent= "Click the dice to roll to see if you pass your exam!";
+          //if the player clicked the button, calculate a roll
+          if ((mouseX > DICE_X+50) && (mouseX < DICE_X+DICE_WIDTH-25) && (mouseY > DICE_Y) && (mouseY < DICE_Y+DICE_HEIGHT-25)) {
+            roll = rollDie();
+            processExam(roll);
+            playerTurn=false;
+          }
+        } else //the player is on a blue tile, they click one of two buttons
+        {
+          // currentEvent= "Choose which path to take!";
+          //if the player clicks the left button
+          if((mouseX > CHOICES_LEFT_X) && (mouseX < CHOICES_LEFT_X + CHOICES_WIDTH) && ((mouseY> CHOICES_Y) && (mouseY<CHOICES_Y+CHOICES_HEIGHT)) ) {
+            //based on what the path currently is, decide what the next one will be
+            switch(pathNumber)
+            {
+              case 1:
+                currentPath.setNextPath(path22[0]);
+                break;
+              case 3:
+                currentPath.setNextPath(path42[0]);
+                break;
+              case 5:
+                currentPath.setNextPath(path61[0]);
+                break;
+            }
+            inputEvent=false;
+            pathNumber++;
+            movePlayer(roll);
+            // playerTurn=true;
+          }
+          //if the player clicks the right button
+          else if((mouseX > CHOICES_RIGHT_X) && (mouseX < CHOICES_RIGHT_X + CHOICES_WIDTH) && ((mouseY> CHOICES_Y) && (mouseY<CHOICES_Y+CHOICES_HEIGHT)) ) {
+            //based on what the path currently is, decide what the next one will be
+            switch(pathNumber)
+            {
+              case 1:
+                currentPath.setNextPath(path21[0]);
+                break;
+              case 3:
+                currentPath.setNextPath(path41[0]);
+                break;
+              case 5:
+                currentPath.setNextPath(path62[0]);
+                break;
+            }
+            pathNumber++;
+            inputEvent=false;
+            movePlayer(roll);
+            // playerTurn=true;
           }
         }
       }
-      //if the player clicked the dice button, calculate a roll
-      if ((mouseX > DICE_X+50) && (mouseX < DICE_X+DICE_WIDTH-25) && (mouseY > DICE_Y) && (mouseY < DICE_Y+DICE_HEIGHT-25)) {
-        rolled=true;
-        roll = int(random(1, 7));
-        playerTurn=false;
-        if(inputEvent==false)
-        {
-          //movePlayer(roll);
-        } else if(examEvent) {
-          processExam(roll);
-        } else {
-          //inputEvent is true; the player is supposed to roll the die
-          currentEvent+= "Click the dice to roll!";
-        }
-      }
+
     }
+  }
+}
+
+/**
+*
+*/
+void movePlayer(int spaces) {
+  try {
+    currentPath.traversePath(spaces);
+    playerX = currentPath.getCurrentTile().getPos().getX();
+    playerY = currentPath.getCurrentTile().getPos().getY();
+    currentEvent="You moved " + spaces + " spaces.";
+    processTile();
+  } catch(NullPointerException e)
+  {
+    inputEvent=true;
+    playerTurn=true;
   }
 }
 
@@ -266,8 +346,13 @@ void drawPlayerStatus() {
   fill(255, 255, 0);
   rect(HAPPY_X+400, HAPPY_Y-225, STATUSBAR_SIZE*playerHappiness/MAX_HAPPY, 12, 20);
   text(":)", HAPPY_X+375, HAPPY_Y-215);
+}
 
-
+/**
+* returns the result of the rolled die
+*/
+int rollDie() {
+return int(random(1, 7));
 }
 
 /**
@@ -292,13 +377,18 @@ void drawStartMenu(){
 }
 
 void drawChoices(){
-  textSize(50);
-  currentEvent = "Select your choice!";
+
   textSize(20);
-  text("Left", 100,280);
-  rect(100,300,100,50);
-  text("Right", 300,280);
-  rect(300,300,100,50);
+
+  fill(255);
+  rect(CHOICES_LEFT_X,CHOICES_Y,CHOICES_WIDTH,CHOICES_HEIGHT);
+  fill(0);
+  text("Go Ahead", CHOICES_LEFT_X + 5, CHOICES_Y+20);
+
+  fill(255);
+  rect(CHOICES_RIGHT_X,CHOICES_Y,CHOICES_WIDTH,CHOICES_HEIGHT);
+  fill(0);
+  text("Go Around", CHOICES_RIGHT_X + 5,CHOICES_Y+20);
 
 }
 
@@ -307,32 +397,10 @@ void drawChoices(){
 */
 void displayInstructions() {
 
-  //background
-  noStroke();
-  fill(255);
-  rect(350,200,800,400);
-
-  //sides
-  noStroke();
-  fill (233, 35, 148);
-  rect(350, 200, 800, 5);
-
-  noStroke();
-  fill (73, 222, 248);
-  rect(850, 200, 5, 400);
-
-  noStroke();
-  fill (147, 196, 125);
-  rect(350, 595, 800, 5);
-
-  noStroke();
-  fill (255, 217, 102);
-  rect(350, 200, 5, 400);
-
   //text
-  String g = "Goal: Reach the end of the board. \nGet good grades, be financially stable, pass your exams, and have fun!";
+  String g = "Goal: Reach the end of the board. \nGet good grades, be financially stable, \npass your exams, and have fun!";
   fill(0);
-  text(g, 365, 210, 1000, 150);
+  text(g, 365, 150, 1500, 250);
 
   String i = "Instructions: You start each turn by rolling a die. Move to the # of spaces and an event may pop up. Keep rolling and playing until you reach the end of the board!";
   fill(0);
@@ -483,6 +551,7 @@ private void processTile()
   else
   {
     inputEvent=true;
+    examEvent=false;
   }
   playerTurn=true;
 }
@@ -508,4 +577,6 @@ private void processExam(int roll)
     else playerGrade=0;
     currentEvent="You failed the exam...";
   }
+
+  playerTurn=true;
 }

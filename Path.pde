@@ -103,8 +103,11 @@ class Path {
   public void traversePath(int toTravel) {
     pointer+=toTravel;
     if(pointer>=tiles.length-1) {
-      currentPath = nextPath;
-      pathNumber++;
+      try {
+        currentPath = nextPath;
+      } catch(NullPointerException e) {
+        e.printStackTrace();
+      }
     }
   }
 

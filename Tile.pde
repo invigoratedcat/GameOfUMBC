@@ -7,10 +7,10 @@ class Tile {
   //constants used for initialization of events
   private final int ORANGE_EVENTS=14;
   private final int WHITE_EVENTS=7;
-  private final int GREEN_EVENTS=2;
+  private final int GREEN_EVENTS=1;
   private final int BLUE_EVENTS=2;
-  private final int PINK_EVENTS=2;
-  private final int RED_EVENTS=2;
+  private final int PINK_EVENTS=1;
+  private final int RED_EVENTS=1;
 
   /**
   * Constructs the Tile object with a color, direction, and position.
@@ -24,6 +24,7 @@ class Tile {
     switch(tileColor) {
      case GREEN:
        events = new Event[GREEN_EVENTS];
+       events[0] = new Event("You got your paycheck!", EventType.GRADE, 25);
        break;
      case ORANGE:
      events = new Event[ORANGE_EVENTS];
@@ -44,9 +45,12 @@ class Tile {
        break;
     case PINK:
        events = new Event[PINK_EVENTS];
+       events[0] = new Event("You feel sick", new EventType[]{EventType.HAPPY, EventType.GRADE}, new int[]{-10,-5});
        break;
     case BLUE:
        events = new Event[BLUE_EVENTS];
+       events[0] = new Event("Do you study?", EventType.GRADE, 0);
+       events[1] = new Event("Do you change your major?", EventType.GRADE, 0);
        break;
     case RED:
        events = new Event[RED_EVENTS];
