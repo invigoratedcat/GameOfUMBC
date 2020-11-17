@@ -90,13 +90,16 @@ int playerWealth=10; //give player a $10 head start
 
 //the current event that’s been registered by the game
 String currentEvent="";
+//used to store what the player rolled across draw loops
+int roll;
+
 
 void setup() {
   size(1536,900);
   frameRate(60);
 
   //load every image, then create the paths
-  boardImage = loadImage("./Board.png");
+  boardImage = loadImage("Board.png");
   playerToken = loadImage("africanamerican_girl.png");
 
   dice = loadImage("pixel_dice.png");
@@ -172,17 +175,22 @@ private void createPaths()
 
 void draw() {
 
+  //if the game hasn't started, draw the start menu
   if(!gameStart) {
     drawStartMenu();
   } else {
+    //if the game has ended, draw the end screen
     if(gameEnded()) {
       displayEndScreen();
     } else {
+      //if the game hasn't ended, draw everything to the sketch.
+      //the order is: board > roll button > status bars > event box > player
       image(boardImage,0,0);
       drawRollButton();
       drawPlayerStatus();
       drawEventBox();
       drawPlayerToken();
+      //if the player needs to roll the die and isn't on a red tile, draw the choices buttons
       if(inputEvent && !examEvent)
         drawChoices();
     }
@@ -190,7 +198,9 @@ void draw() {
 }
 
 /**
-* Returns if the game has ended
+* Returns if the game has ended.
+* If there is a NullPointerException, there is no next Path yet,
+* so it will return if currentPath is the last path(path7[1]).
 */
 boolean gameEnded() {
   boolean toReturn=false;
@@ -210,7 +220,6 @@ void drawPlayerToken(){
 }
 
 //handles player input
-int roll;
 void mousePressed() {
 
   //check if the game has started
@@ -223,7 +232,7 @@ void mousePressed() {
       currentEvent="Click the dice to roll!";
     }
   } else {
-    //if it's the player's turn
+    //if it's the player's turn, handle player input
     if(playerTurn) {
       textFont(mana);
       fill(255);
@@ -242,15 +251,13 @@ void mousePressed() {
         //if the player is on a red tile, they roll to pass an exam
         if(examEvent) {
           currentEvent= "Click the dice to roll to see if you pass your exam!";
-          //if the player clicked the button, calculate a roll
+          //if the player clicked the button, calculate a roll and determine whether they pass the exam
           if ((mouseX > DICE_X+50) && (mouseX < DICE_X+DICE_WIDTH-25) && (mouseY > DICE_Y) && (mouseY < DICE_Y+DICE_HEIGHT-25)) {
             roll = rollDie();
             processExam(roll);
-            playerTurn=false;
           }
-        } else //the player is on a blue tile, they click one of two buttons
+        } else //the player is on a blue tile, check if they click one of the two choices buttons
         {
-          // currentEvent= "Choose which path to take!";
           //if the player clicks the left button
           if((mouseX > CHOICES_LEFT_X) && (mouseX < CHOICES_LEFT_X + CHOICES_WIDTH) && ((mouseY> CHOICES_Y) && (mouseY<CHOICES_Y+CHOICES_HEIGHT)) ) {
             //based on what the path currently is, decide what the next one will be
@@ -269,7 +276,6 @@ void mousePressed() {
             inputEvent=false;
             pathNumber++;
             movePlayer(roll);
-            // playerTurn=true;
           }
           //if the player clicks the right button
           else if((mouseX > CHOICES_RIGHT_X) && (mouseX < CHOICES_RIGHT_X + CHOICES_WIDTH) && ((mouseY> CHOICES_Y) && (mouseY<CHOICES_Y+CHOICES_HEIGHT)) ) {
@@ -289,7 +295,6 @@ void mousePressed() {
             pathNumber++;
             inputEvent=false;
             movePlayer(roll);
-            // playerTurn=true;
           }
         }
       }
@@ -299,7 +304,11 @@ void mousePressed() {
 }
 
 /**
-*
+* Moves the player given the number of spaces to move.
+* Calls traversePath on currentPath so that the player's location is kept track of,
+* and then calls processTile() to handle the event that will come from the tile the player is on.
+* If there's a NullPointerException or ArrayIndexOutOfBoundsException,
+* the player is either on a blue/red tile or at the end of the board, so they are given a turn to give input.
 */
 void movePlayer(int spaces) {
   try {
@@ -320,12 +329,12 @@ void movePlayer(int spaces) {
 }
 
 /**
-* Draws the roll button(a die) and calls movePlayer when playerTurn==true.
-*
+* Draws the roll button (a die)
 */
 void drawRollButton() {
   image(dice, DICE_X, DICE_Y, DICE_WIDTH, DICE_HEIGHT);
 }
+
 // draws wealth, grade, and happiness status bars on the top right of the screen
 void drawPlayerStatus() {
   textSize(TEXT_SIZE);
@@ -380,6 +389,9 @@ void drawStartMenu(){
 
 }
 
+/**
+* draws the choices buttons that show when the player is on a blue tile and needs to pick a path.
+*/
 void drawChoices(){
 
   textSize(20);
@@ -412,7 +424,7 @@ void displayInstructions() {
 }
 
 /**
-* shows the end screen, which shows the player's stats
+* draws the end screen, which shows the player's stats
 */
 void displayEndScreen() {
 
@@ -517,7 +529,7 @@ private String parseEvent()
 /**
 * picks one of the possible Tile events at pseudo-random
 * and sets currentEvent to it. Then it applies the relevant changes
-* to the player's stats.
+* to the player's stats, after which the player can take a turn.
 */
 private void processTile()
 {
@@ -525,11 +537,13 @@ private void processTile()
   Event eventToProcess = toProcess.getEvents()[(int)random(0, toProcess.getEvents().length-1)];
   currentEvent = eventToProcess.getText();
 
+  //tile is red
   if(toProcess.getColor()==RED)
   {
     examEvent=true;
     inputEvent=true;
   }
+  //tile is either orange, white, pink, or green
   else if(toProcess.getColor() != BLUE)
   {
     examEvent=false;
@@ -554,6 +568,7 @@ private void processTile()
   }
   else
   {
+    //the tile is blue
     inputEvent=true;
     examEvent=false;
   }
@@ -582,5 +597,7 @@ private void processExam(int roll)
     currentEvent="You failed the exam...";
   }
 
+  inputEvent=false;
+  examEvent=false;
   playerTurn=true;
 }
