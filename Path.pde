@@ -83,6 +83,9 @@ class Path {
     return parsed;
   }
 
+  /**
+  * returns the current tile - throws ArrayIndexOutOfBoundsException when the next path needs to get set.
+  */
   public Tile getCurrentTile() {
     return tiles[pointer];
   }
@@ -98,13 +101,14 @@ class Path {
   /**
   * Updates the Path object's pointer variable so that it tracks where the player is.
   * If the player is supposed to move to the next path, set the currentPath global
-  * variable to the next Path.
+  * variable to the next Path. If nextPath is null, don't set currentPath to it.
   */
   public void traversePath(int toTravel) {
     pointer+=toTravel;
     if(pointer>=tiles.length-1) {
       try {
-        currentPath = nextPath;
+        if(nextPath!=null)
+          currentPath = nextPath;
       } catch(NullPointerException e) {
         e.printStackTrace();
       }

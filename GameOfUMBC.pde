@@ -183,7 +183,7 @@ void draw() {
       drawPlayerStatus();
       drawEventBox();
       drawPlayerToken();
-      if(inputEvent)
+      if(inputEvent && !examEvent)
         drawChoices();
     }
   }
@@ -199,7 +199,7 @@ boolean gameEnded() {
   }
   catch(NullPointerException e)
   {
-    toReturn=false;
+    toReturn=currentPath==path7[1];
   }
   return toReturn;
 }
@@ -309,6 +309,10 @@ void movePlayer(int spaces) {
     currentEvent="You moved " + spaces + " spaces.";
     processTile();
   } catch(NullPointerException e)
+  {
+    inputEvent=true;
+    playerTurn=true;
+  } catch(ArrayIndexOutOfBoundsException e)
   {
     inputEvent=true;
     playerTurn=true;
